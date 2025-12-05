@@ -1,19 +1,21 @@
 
 import { initializeApp } from 'firebase/app';
-import { 
-  getAuth, 
-  signInWithPopup, 
-  GoogleAuthProvider, 
-  signOut, 
+import { getAnalytics } from "firebase/analytics";
+
+import {
+  getAuth,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
   onAuthStateChanged,
   User
 } from 'firebase/auth';
-import { 
-  getFirestore, 
-  doc, 
-  setDoc, 
+import {
+  getFirestore,
+  doc,
+  setDoc,
   onSnapshot,
-  getDoc 
+  getDoc
 } from 'firebase/firestore';
 import { Account, Transaction, SavingsGoal, Category, Currency, RecurringTransaction, Notification } from '../types';
 
@@ -27,40 +29,28 @@ import { Account, Transaction, SavingsGoal, Category, Currency, RecurringTransac
 // -----------------------------------------------------------
 
 const firebaseConfig = {
-  // 👇 ใส่ค่า Config ของคุณตรงนี้
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyA2cxFHiI5k8OYxKEM8lEhQoQ591lGA05w",
+  authDomain: "kiptrack-baa44.firebaseapp.com",
+  projectId: "kiptrack-baa44",
+  storageBucket: "kiptrack-baa44.firebasestorage.app",
+  messagingSenderId: "44896564718",
+  appId: "1:44896564718:web:2422c2f3b0769e25884aff",
+  measurementId: "G-XKR62PC7DH"
 };
 
 // Initialize Firebase
-let app;
-let auth: any;
-let db: any;
-
-try {
-  // Check if config is dummy text
-  if (firebaseConfig.apiKey !== "YOUR_API_KEY" && !firebaseConfig.apiKey.includes("YOUR_")) {
-    app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
-    db = getFirestore(app);
-    console.log("✅ Firebase initialized successfully");
-  } else {
-    console.warn("⚠️ Firebase Config missing: Running in Offline Mode.");
-  }
-} catch (e) {
-  console.error("❌ Firebase Initialization Error:", e);
-}
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+const auth = getAuth(app);
+const db = getFirestore(app);
+console.log("✅ Firebase initialized successfully");
 
 export const isFirebaseReady = () => !!auth;
 
 export const loginWithGoogle = async () => {
   if (!auth) {
-      alert("กรุณาตั้งค่า Firebase Config ในไฟล์ services/firebase.ts ก่อนใช้งาน");
-      return;
+    alert("กรุณาตั้งค่า Firebase Config ในไฟล์ services/firebase.ts ก่อนใช้งาน");
+    return;
   }
   const provider = new GoogleAuthProvider();
   try {
@@ -83,8 +73,8 @@ export const logout = async () => {
 
 export const subscribeToAuthChanges = (callback: (user: User | null) => void) => {
   if (!auth) {
-    callback(null); 
-    return () => {};
+    callback(null);
+    return () => { };
   }
   return onAuthStateChanged(auth, callback);
 };
@@ -101,46 +91,61 @@ export interface AppData {
   notifications: Notification[];
 }
 
+// Helper to remove undefined values (Firestore doesn't support undefined)
+const removeUndefined = (obj: any): any => {
+  return JSON.parse(JSON.stringify(obj, (_, value) => value === undefined ? null : value));
+};
+
 // Save all data to Firestore
 export const saveUserDataToCloud = async (userId: string, data: AppData) => {
   if (!db) return;
   try {
+    console.log("📤 Saving to cloud...", { userId, transactionsCount: data.transactions?.length });
     const userRef = doc(db, 'users', userId);
-    // Convert undefined to null for Firestore compatibility if needed, 
-    // or just pass object. serializing dates might be needed if they aren't strings.
-    await setDoc(userRef, {
+
+    // Clean data - convert undefined to null for Firestore compatibility
+    const cleanData = removeUndefined({
       ...data,
       lastUpdated: new Date().toISOString()
-    }, { merge: true });
+    });
+
+    await setDoc(userRef, cleanData, { merge: true });
+    console.log("✅ Saved to cloud successfully!");
   } catch (error) {
-    console.error("Error saving to cloud:", error);
+    console.error("❌ Error saving to cloud:", error);
   }
 };
 
 // Load initial data once
 export const loadUserDataFromCloud = async (userId: string): Promise<AppData | null> => {
-    if (!db) return null;
-    try {
-        const userRef = doc(db, 'users', userId);
-        const snapshot = await getDoc(userRef);
-        if (snapshot.exists()) {
-            const data = snapshot.data() as AppData;
-            return data;
-        }
-        return null;
-    } catch (error) {
-        console.error("Error loading from cloud:", error);
-        return null;
+  if (!db) return null;
+  try {
+    const userRef = doc(db, 'users', userId);
+    const snapshot = await getDoc(userRef);
+    if (snapshot.exists()) {
+      const data = snapshot.data() as AppData;
+      return data;
     }
+    return null;
+  } catch (error) {
+    console.error("Error loading from cloud:", error);
+    return null;
+  }
 };
 
 // Real-time listener
-export const subscribeToUserData = (userId: string, callback: (data: AppData) => void) => {
-  if (!db) return () => {};
+export const subscribeToUserData = (userId: string, callback: (data: AppData | null) => void) => {
+  if (!db) return () => { };
+  console.log("📡 Starting Firestore listener for user:", userId);
   return onSnapshot(doc(db, 'users', userId), (doc) => {
     if (doc.exists()) {
-      // We only callback if data exists to avoid wiping local state on fresh login
-      callback(doc.data() as AppData);
+      const data = doc.data() as AppData;
+      console.log("📥 Received data from cloud:", { transactionsCount: data.transactions?.length });
+      callback(data);
+    } else {
+      // Call with null for new users so the app knows Firestore check is complete
+      console.log("📥 No existing data in cloud (new user)");
+      callback(null);
     }
   });
 };

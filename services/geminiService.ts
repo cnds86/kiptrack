@@ -1,7 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, Account, Category, TransactionType, Currency, SavingsGoal, AIParsedResult, Language } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const API_KEY = "AIzaSyC7Aprfk2eLfGVt_ugxwehTtDehq_OBoQU";
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 export const getFinancialAdvice = async (
   transactions: Transaction[],
@@ -10,10 +11,10 @@ export const getFinancialAdvice = async (
   currencies: Currency[],
   language: Language = 'TH'
 ): Promise<string> => {
-  if (!process.env.API_KEY) {
-    return language === 'EN' ? "Please set API Key to use AI features." : 
-           language === 'LA' ? "ກະລຸນາຕັ້ງຄ່າ API Key ເພື່ອໃຊ້ງານ AI." :
-           "กรุณาตั้งค่า API Key เพื่อใช้งานฟีเจอร์ AI";
+  if (!API_KEY) {
+    return language === 'EN' ? "Please set API Key to use AI features." :
+      language === 'LA' ? "ກະລຸນາຕັ້ງຄ່າ API Key ເພື່ອໃຊ້ງານ AI." :
+        "กรุณาตั้งค่า API Key เพื่อใช้งานฟีเจอร์ AI";
   }
 
   const baseCurrency = currencies.find(c => c.isBase) || currencies[0];
@@ -21,11 +22,11 @@ export const getFinancialAdvice = async (
   // Prepare data summary for the AI
   const recentTransactions = transactions.slice(0, 50); // Analyze last 50 transactions
   const totalBalance = accounts.reduce((sum, acc) => {
-     const currency = currencies.find(c => c.code === acc.currencyCode);
-     const rate = currency ? currency.rate : 1;
-     return sum + (acc.balance * rate);
+    const currency = currencies.find(c => c.code === acc.currencyCode);
+    const rate = currency ? currency.rate : 1;
+    return sum + (acc.balance * rate);
   }, 0);
-  
+
   const langName = language === 'TH' ? 'Thai' : language === 'LA' ? 'Lao' : 'English';
 
   const prompt = `
@@ -37,10 +38,10 @@ export const getFinancialAdvice = async (
     - Total Net Worth (Est. in Base Currency): ${totalBalance} ${baseCurrency.code}
     - Accounts: ${JSON.stringify(accounts.map(a => ({ name: a.name, balance: a.balance, currency: a.currencyCode })))}
     - Recent Transactions (Last 50): ${JSON.stringify(recentTransactions.map(t => {
-      const cat = categories.find(c => c.id === t.categoryId)?.name || 'Unknown';
-      const acc = accounts.find(a => a.id === t.accountId);
-      return { date: t.date, type: t.type, amount: t.amount, currency: acc?.currencyCode, category: cat, note: t.note };
-    }))}
+    const cat = categories.find(c => c.id === t.categoryId)?.name || 'Unknown';
+    const acc = accounts.find(a => a.id === t.accountId);
+    return { date: t.date, type: t.type, amount: t.amount, currency: acc?.currencyCode, category: cat, note: t.note };
+  }))}
 
     Please provide a concise financial summary and 3 actionable tips to save money or manage better.
     Use emoji to make it friendly. Keep the response under 200 words.
@@ -67,10 +68,10 @@ export const parseTransactionWithGemini = async (
   currencies: Currency[],
   goals: SavingsGoal[] = []
 ): Promise<AIParsedResult | null> => {
-  if (!process.env.API_KEY || !text) return null;
+  if (!API_KEY || !text) return null;
 
   const today = new Date().toISOString().split('T')[0];
-  
+
   const prompt = `
     Analyze the following user input text regarding personal finance.
     User Input: "${text}"
@@ -135,7 +136,7 @@ export const parseTransactionWithGemini = async (
         responseMimeType: "application/json",
       }
     });
-    
+
     const jsonText = response.text;
     return JSON.parse(jsonText);
   } catch (error) {
@@ -150,10 +151,10 @@ export const parseReceiptWithGemini = async (
   categories: Category[],
   currencies: Currency[]
 ): Promise<AIParsedResult | null> => {
-  if (!process.env.API_KEY || !base64Image) return null;
+  if (!API_KEY || !base64Image) return null;
 
   const today = new Date().toISOString().split('T')[0];
-  
+
   // Extract base64 data (remove header if present)
   const cleanBase64 = base64Image.split(',')[1] || base64Image;
 
@@ -209,15 +210,15 @@ export const parseReceiptWithGemini = async (
       model: 'gemini-2.5-flash',
       contents: {
         parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } },
-            { text: prompt }
+          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } },
+          { text: prompt }
         ]
       },
       config: {
         responseMimeType: "application/json",
       }
     });
-    
+
     const jsonText = response.text;
     return JSON.parse(jsonText);
   } catch (error) {

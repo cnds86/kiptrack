@@ -1,5 +1,4 @@
 
-
 import { Language } from './types';
 
 export const TRANSLATIONS = {
@@ -123,6 +122,7 @@ export const TRANSLATIONS = {
     dueDate: 'วันครบกำหนด',
     yourDebts: 'รายการหนี้สิน',
     confirmRepay: 'ยืนยันการชำระ',
+    search: 'ค้นหา',
   },
   LA: {
     dashboard: 'ໜ້າຫຼັກ',
@@ -244,6 +244,7 @@ export const TRANSLATIONS = {
     dueDate: 'ວັນຄົບກຳນົດ',
     yourDebts: 'ລາຍການໜີ້ສິນ',
     confirmRepay: 'ຢືນຢັນການຊຳລະ',
+    search: 'ຄົ້ນຫາ',
   },
   EN: {
     dashboard: 'Dashboard',
@@ -365,5 +366,6 @@ export const TRANSLATIONS = {
     dueDate: 'Due Date',
     yourDebts: 'Your Debts',
     confirmRepay: 'Confirm Repayment',
+    search: 'Search',
   }
 };
