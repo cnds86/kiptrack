@@ -1,8 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, Account, Category, TransactionType, Currency, SavingsGoal, AIParsedResult, Language } from "../types";
 
-const API_KEY = "AIzaSyC7Aprfk2eLfGVt_ugxwehTtDehq_OBoQU";
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+const ai = new GoogleGenAI({ apiKey:process.env. API_KEY });
 
 export const getFinancialAdvice = async (
   transactions: Transaction[],
